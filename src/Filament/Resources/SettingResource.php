@@ -24,9 +24,11 @@ class SettingResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'System Settings';
     
-    protected static string|\UnitEnum|null $navigationGroup = 'Website Management';
+    protected static string|\UnitEnum|null $navigationGroup = 'Settings2';
     
     protected static ?int $navigationSort = 35;
+    
+    protected static bool $shouldPersistState = false;
 
     public static function form(Schema $schema): Schema
     {
@@ -48,10 +50,11 @@ class SettingResource extends Resource
     public static function getPages(): array
     {
         return [
+            //'index' => ManageAllSettings::route('/'),
             'index' => ListSettings::route('/'),
-            'create' => CreateSetting::route('/create'),
-            'edit' => EditSetting::route('/{record}/edit'),
-            'manage' => ManageAllSettings::route('/manage'),
+            //'create' => CreateSetting::route('/create'),
+            //'edit' => EditSetting::route('/{record}/edit'),
+            //'manage' => ManageAllSettings::route('/manage'),
         ];
     }
     

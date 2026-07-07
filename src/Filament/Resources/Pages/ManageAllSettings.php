@@ -6,6 +6,8 @@ use VEximweb\Core\Settings\Filament\Resources\SettingResource;
 use VEximweb\Core\Data\Models\Setting;
 use Filament\Actions\Action;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
@@ -42,26 +44,88 @@ class ManageAllSettings extends Page implements HasSchemas
     protected function getFormSchema(): array
     {
         $settings = Setting::all();
-        $sections = [];
         
-        $grouped = $settings->groupBy(function ($setting) {
-            $parts = explode('_', $setting->key);
-            return count($parts) > 1 ? $parts[0] : 'general';
-        });
+    // Debug: Output what we're working with
+    \Log::info('=== Settings Debug ===');
+    \Log::info('Total settings: ' . $settings->count());
+    \Log::info('Categories found: ' . $settings->pluck('category')->unique()->filter()->values()->implode(', '));        
         
-        foreach ($grouped as $group => $groupSettings) {
-            $fields = [];
+  
+        // Group all settings by category
+        $groupedByCategory = $settings->groupBy('category')->sortKeys();
+        
+        $tabs = [];
+        
+        foreach ($groupedByCategory as $category => $categorySettings) {
+            // Get the first setting in this category to retrieve the icon
+            $firstSetting = $categorySettings->first();
             
-            foreach ($groupSettings as $setting) {
-                $fields[] = $this->createFieldForSetting($setting);
+            // Use icon if it exists, otherwise use a default based on category name
+            $icon = $firstSetting?->icon;
+            if (empty($icon)) {
+                // Fallback icons based on category name
+                $icon = match($category) {
+                    'servers' => 'heroicon-o-server',
+                    'accounts' => 'heroicon-o-users',
+                    'domain' => 'heroicon-o-globe-alt',
+                    'website' => 'heroicon-o-globe-alt',
+                    'mailman' => 'heroicon-o-envelope',
+                    'spam' => 'heroicon-o-shield-check',
+                    'emailmessages' => 'heroicon-o-envelope',
+                    default => 'heroicon-o-cog-6-tooth',
+                };
             }
             
-            $sections[] = Section::make(ucfirst($group))
-                ->schema($fields)
-                ->columns(2);
+            // Create a tab for each category
+            $tabName = ucwords(str_replace('_', ' ', $category ?: 'General'));
+            
+            $tabs[] = Tab::make($category ?: 'general')
+                ->label($tabName)
+                ->schema($this->getCategorySchema($categorySettings))
+                ->icon($icon);
         }
         
-        return $sections;
+        // If no settings exist, show a default tab
+        if (empty($tabs)) {
+            $tabs[] = Tab::make('general')
+                ->label('General')
+                ->schema([
+                    Section::make('No settings available')
+                        ->schema([])
+                ])
+                ->icon('heroicon-o-cog-6-tooth');
+        }
+        
+        return [
+            Tabs::make('Settings Tabs')
+                ->tabs($tabs)
+                ->columnSpanFull(),
+        ];
+    }
+    
+    /**
+     * Get the schema for a category's settings
+     */
+    protected function getCategorySchema($categorySettings): array
+    {
+        if ($categorySettings->isEmpty()) {
+            return [
+                Section::make('No settings in this category')
+                    ->schema([])
+            ];
+        }
+        
+        $fields = [];
+        
+        foreach ($categorySettings as $setting) {
+            $fields[] = $this->createFieldForSetting($setting);
+        }
+        
+        return [
+            Section::make()
+                ->schema($fields)
+                ->columns(2),
+        ];
     }
     
     protected function createFieldForSetting(Setting $setting)
@@ -92,6 +156,7 @@ class ManageAllSettings extends Page implements HasSchemas
     
     protected function getStringField(Setting $setting, string $label)
     {
+        // Special handling for specific keys
         if ($setting->key === 'crypt_scheme') {
             return Select::make($setting->key)
                 ->label($label)
@@ -103,6 +168,7 @@ class ManageAllSettings extends Page implements HasSchemas
                 ->default($setting->value);
         }
         
+        // Use textarea for long values or specific keys
         if (strlen($setting->value) > 100 || str_contains($setting->key, 'welcome')) {
             return Textarea::make($setting->key)
                 ->label($label)
