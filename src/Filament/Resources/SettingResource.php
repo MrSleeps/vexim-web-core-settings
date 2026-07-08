@@ -18,13 +18,13 @@ class SettingResource extends Resource
 {
     protected static ?string $model = Setting::class;
     
-    protected static ?string $slug = 'website-settings';
+    protected static ?string $slug = 'vexim-settings';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Cog6Tooth;
 
     protected static ?string $recordTitleAttribute = 'System Settings';
     
-    protected static string|\UnitEnum|null $navigationGroup = 'Settings2';
+    protected static string|\UnitEnum|null $navigationGroup = 'Settings';
     
     protected static ?int $navigationSort = 35;
     

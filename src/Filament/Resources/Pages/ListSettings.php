@@ -34,6 +34,21 @@ class ListSettings extends Page implements HasSchemas
         $this->form->fill($settings->pluck('value', 'key')->toArray());
     }
     
+    protected function getHeaderActions(): array
+    {
+        return [];
+    }
+	
+	public function getBreadcrumbs(): array
+	{
+		return [];
+	}
+	
+    public function getTitle(): string
+    {
+        return 'Edit VExim Settings';
+    }	
+	
     public function form(Schema $schema): Schema
     {
         return $schema
@@ -41,29 +56,37 @@ class ListSettings extends Page implements HasSchemas
             ->statePath('data');
     }
     
+    /**
+     * Get the list of categories to ignore
+     * Can be configured in config/vexim.php
+     */
+    protected function getIgnoredCategories(): array
+    {
+        $ignored = config('vexim.ignored_settings_categories', []);   
+        return $ignored;
+    }
+    
     protected function getFormSchema(): array
     {
         $settings = Setting::all();
         
-    // Debug: Output what we're working with
-    \Log::info('=== Settings Debug ===');
-    \Log::info('Total settings: ' . $settings->count());
-    \Log::info('Categories found: ' . $settings->pluck('category')->unique()->filter()->values()->implode(', '));        
+        $ignoredCategories = $this->getIgnoredCategories();
         
-  
-        // Group all settings by category
+        if (!empty($ignoredCategories)) {
+            $settings = $settings->filter(function($setting) use ($ignoredCategories) {
+                return !in_array($setting->category, $ignoredCategories);
+            });
+        }
+
         $groupedByCategory = $settings->groupBy('category')->sortKeys();
         
         $tabs = [];
         
         foreach ($groupedByCategory as $category => $categorySettings) {
-            // Get the first setting in this category to retrieve the icon
             $firstSetting = $categorySettings->first();
             
-            // Use icon if it exists, otherwise use a default based on category name
             $icon = $firstSetting?->icon;
             if (empty($icon)) {
-                // Fallback icons based on category name
                 $icon = match($category) {
                     'servers' => 'heroicon-o-server',
                     'accounts' => 'heroicon-o-users',
