@@ -2,9 +2,12 @@
 namespace VEximweb\Core\Settings;
 
 use Filament\Panel;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use VEximweb\Core\Data\Models\Setting;
 use VEximweb\Core\Data\Repositories\Interfaces\SettingRepositoryInterface;
 use VEximweb\Core\Data\Repositories\SettingRepository;
+use VEximweb\Core\Settings\Policies\SettingPolicy;
 use VEximweb\Core\Settings\Services\EmailServerSettingsService;
 
 class SettingsServiceProvider extends ServiceProvider
@@ -29,6 +32,8 @@ class SettingsServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Gate::policy(Setting::class, SettingPolicy::class);
+        
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'settings');
         //$this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
