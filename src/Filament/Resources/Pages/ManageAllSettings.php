@@ -167,6 +167,19 @@ class ManageAllSettings extends Page implements HasSchemas
                 ])
                 ->default($setting->value);
         }
+
+        if ($setting->key === 'domain_admin_dns_access') {
+            return Select::make($setting->key)
+                ->label('Domain Admin DNS Access')
+                ->helperText('Sets the maximum DNS access domain admins can have. Per-domain controls can restrict this further.')
+                ->options([
+                    'disabled' => 'Disabled',
+                    'global_only' => 'Use global providers only',
+                    'global_and_own' => 'Use global providers + create their own',
+                ])
+                ->required()
+                ->default($setting->value);
+        }
         
         // Use textarea for long values or specific keys
         if (strlen($setting->value) > 100 || str_contains($setting->key, 'welcome')) {
@@ -194,6 +207,8 @@ class ManageAllSettings extends Page implements HasSchemas
                 
                 Setting::where('key', $key)->update(['value' => (string) $value]);
             }
+
+            Setting::clearCache();
             
             Notification::make()
                 ->title('All settings saved successfully')
